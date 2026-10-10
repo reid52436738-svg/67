@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberDrop - P2P 极速安全传档</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+        body {
+            font-family: 'Share Tech Mono', monospace, sans-serif;
+            background-color: #030712;
+            color: #00ff66;
+            overflow-x: hidden;
+        }
+        .glow-box {
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.15);
+            border: 1px solid rgba(0, 255, 102, 0.3);
+        }
+        .glow-box-blue {
+            box-shadow: 0 0 25px rgba(0, 210, 255, 0.2);
+            border: 1px solid rgba(0, 210, 255, 0.4);
+        }
+        .glow-text {
+            text-shadow: 0 0 10px rgba(0, 255, 102, 0.6);
+        }
+        .glow-text-blue {
+            text-shadow: 0 0 10px rgba(0, 210, 255, 0.6);
+        }
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #030712;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #00ff66;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- 背景装饰网格 -->
+    <div class="fixed inset-0 pointer-events-none opacity-10 bg-[linear-gradient(to_right,#00ff66_1px,transparent_1px),linear-gradient(to_bottom,#00ff66_1px,transparent_1px)] bg-[size:4rem_4rem]"></div>
+
+    <!-- 顶栏状态指示器 -->
+    <header class="absolute top-4 left-4 right-4 flex justify-between items-center text-xs tracking-widest text-emerald-500/75 z-10">
+        <div class="flex items-center space-x-2">
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>SECURE_NODE // V2.0</span>
+        </div>
+        <div id="userInfoDisplay" class="hidden">
+            [用户: <span id="currentQQDisplay" class="text-emerald-400"></span>]
+            <button onclick="logout()" class="ml-3 underline hover:text-red-400">注销</button>
+        </div>
+    </header>
+
+    <!-- 主容器 -->
+    <main class="w-full max-w-md z-10">
+
+        <!-- 1. 登录/注册 视图区域 -->
+        <div id="authView" class="glow-box bg-black/80 backdrop-blur-md p-8 rounded-2xl relative">
+            
+            <!-- 标题 -->
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold tracking-wider glow-text text-emerald-400">CYBER_AUTH</h1>
+                <p class="text-xs text-emerald-600 mt-2 tracking-widest" id="authSubtitle">请输入凭证进行系统接入</p>
+            </div>
+
+            <!-- 登录表单 -->
+            <div id="loginFormContainer" class="space-y-4">
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-emerald-500 mb-1">QQ号 / 昵称</label>
+                    <input type="text" id="loginQQ" placeholder="输入您的 QQ 号" class="w-full bg-neutral-900 border border-emerald-900 text-emerald-300 px-4 py-3 rounded-lg focus:outline-none focus:border-emerald-500 transition">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-emerald-500 mb-1">主密码</label>
+                    <input type="password" id="loginPass1" placeholder="••••••••" class="w-full bg-neutral-900 border border-emerald-900 text-emerald-300 px-4 py-3 rounded-lg focus:outline-none focus:border-emerald-500 transition">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-emerald-500 mb-1">二级安全密码</label>
+                    <input type="password" id="loginPass2" placeholder="••••••••" class="w-full bg-neutral-900 border border-emerald-900 text-emerald-300 px-4 py-3 rounded-lg focus:outline-none focus:border-emerald-500 transition">
+                </div>
+                <button onclick="handleLogin()" class="w-full mt-2 bg-emerald-950 hover:bg-emerald-900 border border-emerald-500 text-emerald-400 font-bold py-3 rounded-lg transition duration-200 glow-text tracking-widest">
+                    登 录 系 统
+                </button>
+            </div>
+
+            <!-- 注册表单 (初始隐藏) -->
+            <div id="registerFormContainer" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-emerald-500 mb-1">QQ 号 (唯一标识)</label>
+                    <input type="text" id="regQQ" placeholder="输入您的 QQ 号" class="w-full bg-neutral-900 border border-emerald-900 text-emerald-300 px-4 py-3 rounded-lg focus:outline-none focus:border-emerald-500 transition">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-emerald-500 mb-1">设置主密码</label>
+                    <input type="password" id="regPass1" placeholder="••••••••" class="w-full bg-neutral-900 border border-emerald-900 text-emerald-300 px-4 py-3 rounded-lg focus:outline-none focus:border-emerald-500 transition">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-emerald-500 mb-1">设置二级安全密码</label>
+                    <input type="password" id="regPass2" placeholder="••••••••" class="w-full bg-neutral-900 border border-emerald-900 text-emerald-300 px-4 py-3 rounded-lg focus:outline-none focus:border-emerald-500 transition">
+                </div>
+                <button onclick="handleRegister()" class="w-full mt-2 bg-neutral-900 hover:bg-emerald-950 border border-emerald-500 text-emerald-400 font-bold py-3 rounded-lg transition duration-200 glow-text tracking-widest">
+                    确认注册并存盘
+                </button>
+            </div>
+
+            <!-- 底部切换/管理区域 -->
+            <div class="mt-6 flex justify-between items-center text-xs pt-4 border-t border-emerald-950">
+                <button onclick="exportToExcel()" class="text-emerald-600 hover:text-emerald-400 underline transition">
+                    📥 导出注册表(Excel/CSV)
+                </button>
+                <button id="toggleAuthModeBtn" onclick="toggleAuthMode()" class="text-emerald-400 hover:text-emerald-200 font-semibold tracking-wider">
+                    注册新账号 →
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. 主功能菜单视图 (登录后仅显示 接收 与 传送 两个按钮) -->
+        <div id="mainMenuView" class="hidden glow-box bg-black/85 backdrop-blur-md p-8 rounded-2xl text-center space-y-6">
+            <div>
+                <h2 class="text-2xl font-bold glow-text text-emerald-400 tracking-wider">P2P 终端就绪</h2>
+                <p class="text-xs text-emerald-600 mt-1">请选择您的操作模式</p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 pt-4">
+                <!-- 传送按钮 -->
+                <button onclick="switchView('sendView')" class="group relative overflow-hidden p-6 rounded-xl border border-emerald-500/50 hover:border-emerald-400 bg-emerald-950/20 hover:bg-emerald-950/40 transition-all duration-300 flex items-center justify-center space-x-4">
+                    <span class="text-3xl">📤</span>
+                    <div class="text-left">
+                        <div class="text-lg font-bold text-emerald-300 glow-text tracking-widest">传 送 文 件</div>
+                        <div class="text-xs text-emerald-600">生成随机连接码并发送</div>
+                    </div>
+                </button>
+
+                <!-- 接收按钮 -->
+                <button onclick="switchView('receiveView')" class="group relative overflow-hidden p-6 rounded-xl border border-cyan-500/50 hover:border-cyan-400 bg-cyan-950/20 hover:bg-cyan-950/40 transition-all duration-300 flex items-center justify-center space-x-4">
+                    <span class="text-3xl">📥</span>
+                    <div class="text-left">
+                        <div class="text-lg font-bold text-cyan-300 glow-text-blue tracking-widest">接 收 文 件</div>
+                        <div class="text-xs text-cyan-600">输入对方连接码接收</div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. 传送文件子视图 -->
+        <div id="sendView" class="hidden glow-box bg-black/85 backdrop-blur-md p-8 rounded-2xl space-y-6">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-bold text-emerald-400 glow-text">传送端配置</h3>
+                <button onclick="switchView('mainMenuView')" class="text-xs text-emerald-600 hover:text-emerald-400 underline">← 返回主菜单</button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-emerald-500 mb-2">选择要发送的文件</label>
+                    <input type="file" id="fileInput" class="w-full text-xs text-emerald-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-950 file:text-emerald-300 hover:file:bg-emerald-900 cursor-pointer border border-emerald-900 rounded-lg p-2 bg-neutral-900">
+                </div>
+
+                <div class="text-center py-4 bg-neutral-900/60 rounded-xl border border-emerald-950">
+                    <p class="text-xs text-emerald-500 mb-1">您的专属连接码：</p>
+                    <div id="roomCodeDisplay" class="text-3xl font-extrabold text-emerald-300 tracking-widest glow-text">------</div>
+                </div>
+
+                <button onclick="startHosting()" class="w-full bg-emerald-950 hover:bg-emerald-900 border border-emerald-500 text-emerald-400 font-bold py-3 rounded-lg transition duration-200 glow-text tracking-widest">
+                    生成连接码并发起传输
+                </button>
+
+                <div id="sendProgressContainer" class="hidden space-y-2">
+                    <div class="flex justify-between text-xs text-emerald-500">
+                        <span id="sendStatusText">准备就绪...</span>
+                        <span id="sendPercentage">0%</span>
+                    </div>
+                    <div class="w-full bg-neutral-900 rounded-full h-2 border border-emerald-950 overflow-hidden">
+                        <div id="sendProgressBar" class="bg-emerald-400 h-full w-0 transition-all duration-150"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. 接收文件子视图 -->
+        <div id="receiveView" class="hidden glow-box-blue bg-black/85 backdrop-blur-md p-8 rounded-2xl space-y-6">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-bold text-cyan-400 glow-text-blue">接收端配置</h3>
+                <button onclick="switchView('mainMenuView')" class="text-xs text-cyan-600 hover:text-cyan-400 underline">← 返回主菜单</button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-cyan-500 mb-2">输入发送方的 6 位连接码</label>
+                    <input type="text" id="inputRoomCode" maxlength="6" placeholder="例如: 849201" class="w-full bg-neutral-900 border border-cyan-900 text-cyan-300 text-center text-xl tracking-widest px-4 py-3 rounded-lg focus:outline-none focus:border-cyan-500 uppercase transition">
+                </div>
+
+                <button onclick="connectAndReceive()" class="w-full bg-cyan-950 hover:bg-cyan-900 border border-cyan-500 text-cyan-400 font-bold py-3 rounded-lg transition duration-200 glow-text-blue tracking-widest">
+                    连 接 并 接 收
+                </button>
+
+                <div id="receiveProgressContainer" class="hidden space-y-2">
+                    <div class="flex justify-between text-xs text-cyan-500">
+                        <span id="receiveStatusText">正在连接...</span>
+                        <span id="receivePercentage">0%</span>
+                    </div>
+                    <div class="w-full bg-neutral-900 rounded-full h-2 border border-cyan-950 overflow-hidden">
+                        <div id="receiveProgressBar" class="bg-cyan-400 h-full w-0 transition-all duration-150"></div>
+                    </div>
+                </div>
+
+                <div id="downloadLinkContainer" class="hidden text-center pt-2">
+                    <!-- 下载按钮将在此动态生成 -->
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 简易前端逻辑脚本：包含 本地用户存储/注册、双密码校验、Excel/CSV 导出、以及基于 WebRTC 的简易 P2P 传档骨架 -->
+    <script>
+        // 初始化用户数据库 (LocalStorage 模拟 Excel 存储)
+        function getUsers() {
+            const data = localStorage.getItem('cyber_users');
+            return data ? JSON.parse(data) : [];
+        }
+
+        function saveUsers(users) {
+            localStorage.setItem('cyber_users', JSON.stringify(users));
+        }
+
+        let isRegisterMode = false;
+
+        function toggleAuthMode() {
+            isRegisterMode = !isRegisterMode;
+            const loginCont = document.getElementById('loginFormContainer');
+            const regCont = document.getElementById('registerFormContainer');
+            const subTitle = document.getElementById('authSubtitle');
+            const toggleBtn = document.getElementById('toggleAuthModeBtn');
+
+            if (isRegisterMode) {
+                loginCont.classList.add('hidden');
+                regCont.classList.remove('hidden');
+                subTitle.innerText = "新用户注册系统";
+                toggleBtn.innerText = "← 返回登录";
+            } else {
+                regCont.classList.add('hidden');
+                loginCont.classList.remove('hidden');
+                subTitle.innerText = "请输入凭证进行系统接入";
+                toggleBtn.innerText = "注册新账号 →";
+            }
+        }
+
+        function handleRegister() {
+            const qq = document.getElementById('regQQ').value.trim();
+            const p1 = document.getElementById('regPass1').value;
+            const p2 = document.getElementById('regPass2').value;
+
+            if (!qq || !p1 || !p2) {
+                alert("所有字段不能为空！");
+                return;
+            }
+            if (p1 !== p2) {
+                alert("两次输入的密码不一致！");
+                return;
+            }
+
+            let users = getUsers();
+            if (users.find(u => u.qq === qq)) {
+                alert("该 QQ 号已注册过！");
+                return;
+            }
+
+            users.push({
+                qq: qq,
+                pass1: p1,
+                pass2: p2,
+                regTime: new Date().toLocaleString()
+            });
+
+            saveUsers(users);
+            alert("注册成功！数据已持久化。");
+            toggleAuthMode();
+        }
+
+        function handleLogin() {
+            const qq = document.getElementById('loginQQ').value.trim();
+            const p1 = document.getElementById('loginPass1').value;
+            const p2 = document.getElementById('loginPass2').value;
+
+            let users = getUsers();
+            const user = users.find(u => u.qq === qq && u.pass1 === p1 && u.pass2 === p2);
+
+            if (!user) {
+                alert("登录失败：QQ 号、主密码或二级密码错误！");
+                return;
+            }
+
+            // 登录成功
+            sessionStorage.setItem('current_user', qq);
+            enterMainApp(qq);
+        }
+
+        function enterMainApp(qq) {
+            document.getElementById('authView').classList.add('hidden');
+            document.getElementById('mainMenuView').classList.remove('hidden');
+            document.getElementById('userInfoDisplay').classList.remove('hidden');
+            document.getElementById('currentQQDisplay').innerText = qq;
+        }
+
+        function logout() {
+            sessionStorage.removeItem('current_user');
+            location.reload();
+        }
+
+        // 导出注册表到 Excel 兼容的 CSV 格式
+        function exportToExcel() {
+            let users = getUsers();
+            if (users.length === 0) {
+                alert("当前没有注册用户数据！");
+                return;
+            }
+
+            let csvContent = "\uFEFFQQ号,主密码,二级安全密码,注册时间\n";
+            users.forEach(u => {
+                csvContent += `"${u.qq}","${u.pass1}","${u.pass2}","${u.regTime}"\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `CyberUsers_${Date.now()}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 视图切换
+        function switchView(viewId) {
+            document.getElementById('mainMenuView').classList.add('hidden');
+            document.getElementById('sendView').classList.add('hidden');
+            document.getElementById('receiveView').classList.add('hidden');
+
+            document.getElementById(viewId).classList.remove('hidden');
+        }
+
+        // 随机码生成
+        function generateRoomCode() {
+            return Math.floor(100000 + Math.random() * 900000).toString();
+        }
+
+        // 文件传送与接收仿真骨架 (WebRTC 点对点)
+        let localRoomCode = '';
+
+        function startHosting() {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput.files.length === 0) {
+                alert("请先选择一个文件！");
+                return;
+            }
+            localRoomCode = generateRoomCode();
+            document.getElementById('roomCodeDisplay').innerText = localRoomCode;
+            document.getElementById('sendProgressContainer').classList.remove('hidden');
+            document.getElementById('sendStatusText').innerText = "等待接收端通过码 [" + localRoomCode + "] 接入...";
+            
+            // 真实生产环境可结合免费的 WebRTC 信令服务器（如 PeerJS），这里提供标准交互视觉
+        }
+
+        function connectAndReceive() {
+            const code = document.getElementById('inputRoomCode').value.trim();
+            if (code.length !== 6) {
+                alert("请输入正确的 6 位连接码！");
+                return;
+            }
+            document.getElementById('receiveProgressContainer').classList.remove('hidden');
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                document.getElementById('receiveProgressBar').style.width = progress + '%';
+                document.getElementById('receivePercentage').innerText = progress + '%';
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    document.getElementById('receiveStatusText').innerText = "传输成功！";
+                    document.getElementById('downloadLinkContainer').innerHTML = `<span class="text-xs text-emerald-400">文件接收完毕（演示通道）</span>`;
+                    document.getElementById('downloadLinkContainer').classList.remove('hidden');
+                }
+            }, 300);
+        }
+
+        // 页面加载自动检查会话
+        window.onload = function() {
+            const activeUser = sessionStorage.getItem('current_user');
+            if (activeUser) {
+                enterMainApp(activeUser);
+            }
+        };
+    </script>
+</body>
+</html>
